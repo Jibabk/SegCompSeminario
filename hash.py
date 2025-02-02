@@ -28,7 +28,7 @@ privateKey = int(ler_arquivo('privateKey'))
 
 retorno = int_para_base64(pow(int(hash_sha256.hex(),16), privateKey,n)) # Encriptando o hash com a chave privada
 
-with open('output', 'w') as arquivo:
+with open("output.txt", 'w') as arquivo:
     arquivo.write(retorno)
 
 print("Hash encriptado com sucesso")
