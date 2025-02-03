@@ -1,7 +1,7 @@
 import base64
 import hashlib
 import os
-
+from math import ceil
 def ler_arquivo(caminho_arquivo):
     try:
         with open(caminho_arquivo, 'r', encoding='utf-8') as arquivo:
@@ -13,14 +13,20 @@ def ler_arquivo(caminho_arquivo):
         return f"Ocorreu um erro: {e}".encode('utf-8')
 
 def mgf1(seed, mask_len):
-    t = b""
-    for i in range((mask_len + 31) // 32):
-        c = int_para_base64(i).encode()
-        t += hashlib.sha3_256(seed + c).digest()
-    return t[:mask_len]
+    """Mask Generation Function 1 (MGF1)"""
+    h_len = hashlib.sha3_256().digest_size
+    counter = 0
+    output = b""
+    
+    while len(output) < mask_len:
+        c = counter.to_bytes(4, byteorder='big')  # FIX
+        output += hashlib.sha3_256(seed + c).digest()
+        counter += 1
+
+    return output[:mask_len]
     
 def oaep_encode(mensagem, n, e):
-    k = n.bit_length() // 8 #(k denotes the length inoctets of the RSA modulus n)
+    k = (n.bit_length() + 7) // 8 #(k denotes the length inoctets of the RSA modulus n)
     if len(mensagem) > k - 2 * hashlib.sha3_256().digest_size - 2: # mLen > k - 2hLen - 2
         raise ValueError("Mensagem muito longa")
     
@@ -44,13 +50,25 @@ def oaep_encode(mensagem, n, e):
 
     return b"\x00" + masked_seed + masked_db
 
-def os2ip(x):
+def os2ip(x: bytes) -> int:
     return int.from_bytes(x, byteorder='big')
 
-def i2osp(x, x_len):
-    if x >= 2**(8 * x_len):  # Se x for grande demais para caber
-        raise ValueError("O número é muito grande para ser representado em x_len bytes")
-    return x.to_bytes(x_len, byteorder='big')
+def i2osp(x: int, xlen: int) -> bytes:
+    return x.to_bytes(xlen, byteorder='big')
+
+def xor(data: bytes, mask: bytes) -> bytes:
+    '''Byte-by-byte XOR of two byte arrays'''
+    masked = b''
+    ldata = len(data)
+    lmask = len(mask)
+    for i in range(max(ldata, lmask)):
+        if i < ldata and i < lmask:
+            masked += (data[i] ^ mask[i]).to_bytes(1, byteorder='big')
+        elif i < ldata:
+            masked += data[i].to_bytes(1, byteorder='big')
+        else:
+            break
+    return masked
 
 def oaep_decode(c, n, d):
     k = (n.bit_length() + 7) // 8
@@ -80,17 +98,16 @@ def oaep_decode(c, n, d):
     
 
     seed_mask = mgf1(masked_db, l_hash_len)
-    seed = bytes(a ^ b for a, b in zip(masked_seed, seed_mask)) #xor
+    seed = xor(masked_seed, seed_mask)
     db_mask = mgf1(seed, k - l_hash_len - 1)
-    db = bytes(a ^ b for a, b in zip(masked_db, db_mask)) #xor
+    db = xor(masked_db, db_mask)
 
     l_hash_prime = db[:l_hash_len]
 
-    print(l_hash_prime)
-    print(l_hash)
+    
 
     if l_hash_prime != l_hash:
-        raise ValueError("Decodificação falhou")
+       raise ValueError("Decodificação falhou")
     i = l_hash_len
     while i < len(db):
         if db[i] == 1:
@@ -125,7 +142,6 @@ hash_int = int(hash_sha3_256.hex(),16)
 oaepEncode = oaep_encode(hash_sha3_256, n, privateKey)
 
 
-
 oaepEncode_int = os2ip(oaepEncode)
 
 
@@ -135,12 +151,10 @@ assinatura = pow(oaepEncode_int, privateKey, n)
 
 
 # 5. Codificar resultado em Base64
-assinatura_b64 = int_para_base64(assinatura)
-
-
-
-
 assinaturaI2OSP = i2osp(assinatura, (n.bit_length() + 7) // 8)
+
+
+assinatura_b64 = base64.b64encode(assinaturaI2OSP).decode('utf-8')
 
 
 
@@ -149,10 +163,12 @@ with open("output.txt", 'w') as arquivo:
 
 print("Hash encriptado com sucesso")
 
-if len(assinaturaI2OSP) != (n.bit_length() + 7) // 8:
-    raise ValueError("Tamanho do ciphertext inválido")
 
-oaepDecode = oaep_decode(assinaturaI2OSP, n, publicKey)
+
+#oaepDecode = oaep_decode(assinaturaI2OSP, n, publicKey)
+
+#print(hash_sha3_256)
+#print(str(oaepDecode))
 
 
 

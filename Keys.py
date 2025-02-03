@@ -2,6 +2,8 @@ import math
 from random import randint
 import random
 import secrets
+from sympy import nextprime
+
 
 def miller_rabin(n, k):
     if n == 2:
@@ -48,7 +50,8 @@ def getPrivateKey(publicKey, prime, prime2):
 
 
 prime= getPrime()
-prime2= getPrime()
+prime2= nextprime(10**310)
+
 publicKey = getPublicKey(prime, prime2)
 privateKey = getPrivateKey(publicKey, prime, prime2)
     
