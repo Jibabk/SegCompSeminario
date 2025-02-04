@@ -1,7 +1,6 @@
 import base64
 import hashlib
-import os
-from math import ceil
+
 
 
 def ler_arquivo(caminho_arquivo):

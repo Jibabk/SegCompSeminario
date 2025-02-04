@@ -1,7 +1,7 @@
 import base64
 import hashlib
 import os
-from math import ceil
+
 def ler_arquivo(caminho_arquivo):
     try:
         with open(caminho_arquivo, 'r', encoding='utf-8') as arquivo:
@@ -70,54 +70,6 @@ def xor(data: bytes, mask: bytes) -> bytes:
             break
     return masked
 
-def oaep_decode(c, n, d):
-    k = (n.bit_length() + 7) // 8
-    
-    if k < 2 * hashlib.sha3_256().digest_size + 2:
-        raise ValueError("Decodificação falhou")
-
-    
-    c_int = os2ip(c)
-
-    if c_int >= n:
-        raise ValueError("Decodificação falhou")
-
-    m_int = pow(c_int, d, n)
-
-
-    m = i2osp(m_int, k)
-
-    l_hash = hashlib.sha3_256(b"").digest()
-    l_hash_len = len(l_hash)
-
-
-    masked_seed = m[1:l_hash_len + 1]
-
-
-    masked_db = m[l_hash_len + 1:]
-    
-
-    seed_mask = mgf1(masked_db, l_hash_len)
-    seed = xor(masked_seed, seed_mask)
-    db_mask = mgf1(seed, k - l_hash_len - 1)
-    db = xor(masked_db, db_mask)
-
-    l_hash_prime = db[:l_hash_len]
-
-    
-
-    if l_hash_prime != l_hash:
-       raise ValueError("Decodificação falhou")
-    i = l_hash_len
-    while i < len(db):
-        if db[i] == 1:
-            i += 1
-            break
-        elif db[i] != 0:
-            raise ValueError("Decodificação falhou")
-        i += 1
-    return db[i:]
-
 def int_para_base64(numero):
     numero_bytes = numero.to_bytes((numero.bit_length() + 7) // 8, byteorder='big')
     numero_base64 = base64.b64encode(numero_bytes).decode('utf-8')
@@ -164,11 +116,6 @@ with open("output.txt", 'w') as arquivo:
 print("Hash encriptado com sucesso")
 
 
-
-#oaepDecode = oaep_decode(assinaturaI2OSP, n, publicKey)
-
-#print(hash_sha3_256)
-#print(str(oaepDecode))
 
 
 
